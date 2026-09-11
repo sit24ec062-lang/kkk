@@ -27,6 +27,8 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=os.path.join(BASE, "data", "static", "static"), static_url_path="/static")
 DB = os.path.join(BASE, "nowrongdoor.db")
 RULES = json.load(open(os.path.join(BASE, "data", "rules.json"), encoding="utf-8"))
+for scheme in RULES.get("schemes", []):
+    scheme.setdefault("fdc", "NSFDC")
 
 STAGES = {1:"SUBMITTED",2:"INITIAL_SCRUTINY",3:"DOCUMENT_VERIFICATION",4:"ELIGIBILITY_VERIFICATION",
           5:"FORWARDED_TO_CP",6:"CREDIT_ASSESSMENT",7:"FIELD_VERIFICATION",8:"SANCTION",
@@ -144,7 +146,7 @@ def match():
         if s.get("extra_rule"):
             er=s["extra_rule"]
             if not apply_op(p.get(er["field"]),er["op"],er["value"]): reasons.append(er["desc"])
-        ev.append({"scheme":s["name"],"scheme_id":s["id"],"fdc":s["fdc"],"suitable":not reasons,
+        ev.append({"scheme":s["name"],"scheme_id":s["id"],"fdc":s.get("fdc", "NSFDC"),"suitable":not reasons,
                    "rejection_reasons":reasons,"interest_demo":s["interest_demo"],
                    "desc":s["desc"],"max_loan":s["max_loan"]})
     fits=[e for e in ev if e["suitable"]]
