@@ -119,6 +119,7 @@ def voice():
 
 # ================= RULE ENGINE =================
 def apply_op(v, op, val):
+    if v is None: return False
     return {"<=":v<=val,">=":v>=val,"==":v==val,"<":v<val,">":v>val}.get(op, False)
 
 @app.post("/api/eligibility")
@@ -489,6 +490,9 @@ def ack_slip(app_no):
 # ================= HOME =================
 @app.get("/")
 def home(): return send_from_directory(app.static_folder, "index.html")
+
+@app.get("/favicon.ico")
+def favicon(): return "", 204
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
