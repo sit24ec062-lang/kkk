@@ -102,6 +102,13 @@ CREATE TABLE IF NOT EXISTS outcomes (
     monitored_at     TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS journeys (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref     TEXT UNIQUE NOT NULL,
+    app_id  INTEGER REFERENCES applications(id),
+    payload TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_user    ON applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_app  ON status_events(app_id);
 CREATE INDEX IF NOT EXISTS idx_queries_app ON queries(app_id);

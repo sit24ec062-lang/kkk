@@ -48,6 +48,12 @@ PARTNERS = [
 def main():
     con = sqlite3.connect(DB)
     con.executescript(open(SCHEMA).read())
+    con.execute("DELETE FROM outcomes")
+    con.execute("DELETE FROM queries")
+    con.execute("DELETE FROM documents")
+    con.execute("DELETE FROM status_events")
+    con.execute("DELETE FROM journeys")
+    con.execute("DELETE FROM applications")
     con.execute("DELETE FROM partners")
     con.executemany("""INSERT INTO partners (name,ptype,fdc,district,block,schemes,address,contact,last_verified)
                        VALUES (?,?,?,?,?,?,?,?,?)""",
@@ -117,3 +123,136 @@ def main():
 
 if __name__ == "__main__":
     main()
+    raise SystemExit
+schema_sql = '''-- ================================================================
+-- PM-SURAJ SEVA · NO WRONG DOOR v3.0 (merged)
+-- SIH 2026 · PS 26092 · MoSJE / NSFDC ecosystem · Sandbox
+-- ================================================================
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    mobile        TEXT UNIQUE NOT NULL,
+    password      TEXT NOT NULL DEFAULT 'demo1234',
+    role          TEXT NOT NULL DEFAULT 'applicant',
+    org           TEXT DEFAULT '',
+    district      TEXT NOT NULL,
+    is_sc         INTEGER NOT NULL DEFAULT 1,
+    is_woman      INTEGER NOT NULL DEFAULT 0,
+    family_income INTEGER,
+    language      TEXT DEFAULT 'ta',
+    created_at    TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_no       TEXT UNIQUE NOT NULL,
+    user_id      INTEGER REFERENCES users(id),
+    fdc          TEXT NOT NULL DEFAULT 'NSFDC',
+    scheme_id    TEXT NOT NULL,
+    amount       INTEGER NOT NULL,
+    project_cost INTEGER,
+    purpose      TEXT DEFAULT 'business',
+    stage        INTEGER NOT NULL DEFAULT 1,
+    status       TEXT NOT NULL DEFAULT 'IN_PROCESS',
+    partner_id   INTEGER REFERENCES partners(id),
+    created_at   TEXT DEFAULT (datetime('now')),
+    updated_at   TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS status_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id     INTEGER REFERENCES applications(id),
+    stage      INTEGER NOT NULL,
+    stage_key  TEXT NOT NULL,
+    actor      TEXT NOT NULL,
+    note       TEXT NOT NULL DEFAULT '',
+    days_taken INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS queries (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id         INTEGER REFERENCES applications(id),
+    raised_by      TEXT NOT NULL,
+    category       TEXT NOT NULL,
+    title          TEXT NOT NULL,
+    detail         TEXT NOT NULL,
+    action_by      TEXT NOT NULL DEFAULT 'APPLICANT',
+    blocking       INTEGER DEFAULT 1,
+    status         TEXT NOT NULL DEFAULT 'OPEN',
+    resolution     TEXT DEFAULT '',
+    created_at     TEXT DEFAULT (datetime('now')),
+    resolved_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS partners (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    ptype         TEXT NOT NULL,
+    fdc           TEXT NOT NULL DEFAULT 'NSFDC',
+    district      TEXT NOT NULL,
+    block         TEXT DEFAULT '',
+    schemes       TEXT NOT NULL DEFAULT '',
+    address       TEXT NOT NULL DEFAULT '',
+    contact       TEXT DEFAULT '',
+    last_verified TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER REFERENCES users(id),
+    app_id     INTEGER REFERENCES applications(id),
+    doc_type   TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'ON_FILE',
+    note       TEXT DEFAULT '',
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, app_id, doc_type)
+);
+
+CREATE TABLE IF NOT EXISTS outcomes (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id           INTEGER REFERENCES applications(id),
+    disbursed_amount INTEGER,
+    business_started INTEGER DEFAULT 0,
+    monthly_income   INTEGER,
+    repayment_status TEXT DEFAULT 'ON_TIME',
+    monitored_at     TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS journeys (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref     TEXT UNIQUE NOT NULL,
+    app_id  INTEGER REFERENCES applications(id),
+    payload TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_user    ON applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_events_app  ON status_events(app_id);
+CREATE INDEX IF NOT EXISTS idx_queries_app ON queries(app_id);
+CREATE INDEX IF NOT EXISTS idx_partners_d  ON partners(district);
+'''
+with open(os.path.join(base, "schema.sql"), "w", encoding="utf-8") as f:
+    f.write(schema_sql)
+
+# rules.json — same core asset from both repos
+rules = {
+  "version": "1.0-sandbox",
+  "source_note": "SANDBOX demo data curated from nsfdc.nic.in scheme pages. Verify against official sources before production. Last verified (demo): Sep 2026",
+  "global_rules": [
+    {"id": "SC", "desc": "Applicant must belong to Scheduled Caste (SC)", "field": "is_sc", "op": "==", "value": True},
+    {"id": "INCOME", "desc": "Annual family income must be within ₹5,00,000 ceiling", "field": "family_income", "op": "<=", "value": 500000}
+  ],
+  "schemes": [
+    {"id": "MICRO_FINANCE", "name": "Micro Finance Scheme", "fdc": "NSFDC", "min_project": 0, "max_project": 140000, "max_loan": 140000, "interest_demo": 8.0, "tags": ["micro", "small business"], "desc": "Micro credit support for small income-generating activities", "extra_rule": None, "for_purposes": ["business", "micro", "agriculture"]},
+    {"id": "NEW_SWARNIMA", "name": "New Swarnima Scheme for Women", "fdc": "NSFDC", "min_project": 0, "max_project": 200000, "max_loan": 200000, "interest_demo": 5.0, "tags": ["women", "micro"], "desc": "Concessional micro finance for women entrepreneurs", "extra_rule": {"field": "is_woman", "op": "==", "value": True, "desc": "Applicant must be a woman"}, "for_purposes": ["business", "micro"]},
+    {"id": "MAHILA_SAMRIDHI", "name": "Mahila Samridhi Yojana", "fdc": "NSFDC", "min_project": 0, "max_project": 140000, "max_loan": 140000, "interest_demo": 5.0, "tags": ["women", "micro"], "desc": "Micro finance for women in rural & urban areas", "extra_rule": {"field": "is_woman", "op": "==", "value": True, "desc": "Applicant must be a woman"}, "for_purposes": ["business", "micro"]},
+    {"id": "TERM_LOAN", "name": "Term Loan", "fdc": "NSFDC", "min_project": 140001, "max_project": 5000000, "max_loan": 4500000, "interest_demo": 8.0, "tags": ["business", "manufacturing", "enterprise"], "desc": "Concessional term loan for viable projects", "extra_rule": None, "for_purposes": ["business", "manufacturing", "agriculture", "skill"]},
+    {"id": "EDUCATION_LOAN", "name": "Educational Loan", "fdc": "NSFDC", "min_project": 50000, "max_project": 1000000, "max_loan": 1000000, "interest_demo": 4.0, "tags": ["education", "studies", "course"], "desc": "Educational loans for studies in India", "extra_rule": None, "for_purposes": ["education"]}
+  ],
+  "repayment": {"term_loan_years_max": 7, "moratorium_months": 6}
+}
+with open(os.path.join(base, "data", "rules.json"), "w", encoding="utf-8") as f:
+    json.dump(rules, f, ensure_ascii=False, indent=2)
+print("schema.sql + data/rules.json written")

@@ -1,17 +1,32 @@
-"""PM-SURAJ SEVA · NO WRONG DOOR v2.0 — Beneficiary Journey Intelligence
-SIH 2026 · PS 26092 · MoSJE / NSFDC ecosystem (sandbox)
+"""PM-SURAJ SEVA · NO WRONG DOOR v3.0 — Merged Beneficiary Access + Journey Intelligence
+SIH 2026 · PS 26092 · Ministry of Social Justice & Empowerment / NSFDC ecosystem (sandbox)
 
-Rule engine decides eligibility (deterministic, auditable).
-AI layer = multilingual entity extraction for voice input ONLY.
-Demo auth via x-user-id header (sandbox). Production: Aadhaar OTP / NIC SSO.
+MERGED BUILD (v3.0):
+  - v1 (beneficiary readiness engine): understand -> eligibility -> match -> pathway
+    -> document readiness -> partner routing -> QR journey card
+  - v2 (journey intelligence): roles (applicant/officer/admin), applications, 11-stage
+    status pipeline, query resolution engine, SLA/bottleneck analytics, outcomes
+  - NEW v3: government-portal downloadable Application Form + Acknowledgement slip
+    (print-to-PDF, server-rendered), full journey card linked to application.
+
+Architecture honesty:
+  Rule engine decides eligibility (deterministic, auditable). AI layer is simulated
+  multilingual entity extraction for voice input ONLY. PM-SURAJ handoff = mock adapter.
+  All scheme data = SANDBOX demo data — verify against nsfdc.nic.in before real use.
+
+Run:
+  pip install flask
+  python seed_db.py
+  python app.py
+  # open http://localhost:5000
 """
-from flask import Flask, request, jsonify, send_from_directory, g
+from flask import Flask, request, jsonify, send_from_directory, render_template_string
 import sqlite3, json, re, random, string, os, datetime
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, static_folder=os.path.join(BASE, "data", "static", "static"), static_url_path="")
+app = Flask(__name__, static_folder=os.path.join(BASE, "data", "static", "static"), static_url_path="/static")
 DB = os.path.join(BASE, "nowrongdoor.db")
-RULES = json.load(open(os.path.join(BASE, "data", "rules.json")))
+RULES = json.load(open(os.path.join(BASE, "data", "rules.json"), encoding="utf-8"))
 
 STAGES = {1:"SUBMITTED",2:"INITIAL_SCRUTINY",3:"DOCUMENT_VERIFICATION",4:"ELIGIBILITY_VERIFICATION",
           5:"FORWARDED_TO_CP",6:"CREDIT_ASSESSMENT",7:"FIELD_VERIFICATION",8:"SANCTION",
@@ -31,7 +46,7 @@ def login():
     d = request.json
     u = db().execute("SELECT * FROM users WHERE mobile=? AND password=?",
                      (d.get("mobile",""), d.get("password","demo1234"))).fetchone()
-    if not u: return jsonify({"error":"Invalid credentials (sandbox: use demo logins)"}), 401
+    if not u: return jsonify({"error":"Invalid credentials (sandbox: use demo logins in README)"}), 401
     return jsonify({"user":{k:u[k] for k in ["id","name","role","district","org","language","family_income"]}})
 
 # ================= SCHEMES =================
@@ -40,33 +55,33 @@ def schemes():
     return jsonify({"schemes":RULES["schemes"], "rules":RULES["global_rules"],
                     "version":RULES["version"], "note":RULES["source_note"]})
 
-# ================= MULTILINGUAL VOICE UNDERSTAND (AI layer — simulation) =================
+# ============ MULTILINGUAL VOICE UNDERSTAND (AI layer — simulation) ============
 AMT_MULT = {"lakh":100000,"lakhs":100000,"lac":100000,"lacs":100000,
             "crore":10000000,"crores":10000000,
-            "लाख":100000,"लाखों":100000,"కోట్ల":10000000,"ಲಕ್ಷ":100000,"ലക്ഷം":100000,"লাখ":100000}
+            "லட்சம்":100000,"லட்ச":100000,"लाख":100000,"లక్ష":100000,"ಲಕ್ಷ":100000,"ലക്ഷം":100000,"লাখ":100000}
 PURPOSES = [
- ("business",       ["business","viyaparam","தொழில்","kadai","கடை","trading","दुकान","व्यापार","వ్యాపారం","ಅಂಗಡಿ","വ്യാപാരം","দোকান","shop"]),
- ("manufacturing",  ["manufactur","sirpam","சிற்பம்","production","factory","आल","फैक्ट्री","యంత్ర","ಯಂತ್ರ","ദ്വ","","workshop","repair"]),
- ("education",      ["education","padippu","படிப்பு","course","degree","college","पढ़ाई","शिक्षा","విద్య","ಶಿಕ್ಷಣ","വിദ്യാഭ്യാസം","শিক্ষা","പഠനം","பயிற்சி"]),
- ("skill",          ["skill","training","पரிசீலനை","പരിശീലനം","training"]),
+ ("business",       ["business","viyaparam","தொழில்","kadai","கடை","trading","दुकान","व्यापार","వ్యాపారం","ಅಂಗಡಿ","വ്യാപാരം","দোকান","shop","tailor"]),
+ ("manufacturing",  ["manufactur","sirpam","சிற்பம்","production","factory","ಆலை","aalai","workshop","repair","యంత్ర","ಯಂತ್ರ"]),
+ ("education",      ["education","padippu","படிப்பு","course","degree","college","पढ़ाई","शिक्षा","విద్య","ಶಿಕ್ಷಣ","വിദ്യാഭ്യാസം","শিক্ষা"]),
+ ("skill",          ["skill","training","பயிற்சி","പരിശീലനം"]),
  ("agriculture",    ["agri","vivasayi","விவசாயம்","farming","खेती","వ్యవసాయ","ಕೃಷಿ","കൃഷി","কৃষি"]),
- ("sanitation",     ["sanitation","safai","सफाई","scaveng","waste","குப்பை","మురుగు","கிராம","","",""]),
+ ("sanitation",     ["sanitation","safai","सफाई","scaveng","waste","குப்பை"]),
 ]
 DISTRICTS = ["madurai","chennai","coimbatore","salem","tiruchirappalli","trichy","virudhunagar",
              "tirunelveli","thanjavur","erode","dindigul","sivaganga","pudukkottai","namakkal","karur",
              "theni","kanyakumari","vellore","tiruvannamalai","villupuram","kancheepuram","tiruppur"]
 
 def parse_amount(t):
-    m = re.findall(r"(?:₹|rs\\.?|rupees?)\\s*([\\d,.]+)\\s*(lakh|lakhs|lac|lacs|crore|crores)?", t.lower())
+    m = re.findall(r"(?:₹|rs\.?|rupees?)\s*([\d,.]+)\s*(lakh|lakhs|lac|lacs|crore|crores)?", t.lower())
     if not m:
-        m = re.findall(r"([\\d,.]+)\\s*(lakh|lakhs|lac|lacs|crore|crores)", t.lower()) or []
+        m = re.findall(r"([\d,.]+)\s*(lakh|lakhs|lac|lacs|crore|crores)", t.lower()) or []
     if not m: return None
     v = float(m[0][0].replace(",",""))
     if len(m[0])>1 and m[0][1]: v *= AMT_MULT.get(m[0][1].lower(), 1)
     return int(v)
 
 def parse_income(t):
-    m = re.findall(r"(?:income|aaya|varamaanam|வருவாய்|आय|ఆదాయం|ಆದಾಯ|വരുമാനം|আয়)[^\\d₹rs]{0,25}(?:₹|rs\\.?)?\\s*([\\d,.]+)\\s*(lakh|lakhs|lac|lacs)?", t.lower())
+    m = re.findall(r"(?:income|aaya|varamaanam|வருவாய்|आय|ఆదాయం|ಆದಾಯ|വരുമാനം|আয়)[^\d₹rs]{0,25}(?:₹|rs\.?)?\s*([\d,.]+)\s*(lakh|lakhs|lac|lacs)?", t.lower())
     if m:
         v = float(m[0][0].replace(",",""))
         if m[0][1]: v *= 100000
@@ -84,15 +99,15 @@ def voice():
     amt  = parse_amount(msg)
     inc  = parse_income(msg)
     dist = next((d.title() for d in DISTRICTS if d in tl), None)
-    lang_detect = "ta" if any('\\u0b80' <= c <= '\\u0bff' for c in msg) else (
-                  "hi" if any('\\u0900' <= c <= '\\u097f' for c in msg) else (
-                  "te" if any('\\u0c00' <= c <= '\\u0c7f' for c in msg) else (
-                  "bn" if any('\\u0980' <= c <= '\\u09ff' for c in msg) else lang)))
+    lang_detect = "ta" if any('\u0b80' <= c <= '\u0bff' for c in msg) else (
+                  "hi" if any('\u0900' <= c <= '\u097f' for c in msg) else (
+                  "te" if any('\u0c00' <= c <= '\u0c7f' for c in msg) else (
+                  "bn" if any('\u0980' <= c <= '\u09ff' for c in msg) else lang)))
     profile = {"purpose":purpose,
                "required_amount":amt,
                "family_income":inc or 380000,
                "is_sc":True,
-               "is_woman":any(w in tl for w in ["woman","women","lady","பெண்","महिला","స్త్రీ","ಮಹಿಳೆ","സ്ത്രീ","মহিলা","pen"]),
+               "is_woman":any(w in tl for w in ["woman","women","lady","பெண்","pen","ponnu","महिला","స్త్రీ","ಮಹಿಳೆ","സ്ത്രീ","মহিলা"]),
                "is_sanitation_worker":purpose=="sanitation",
                "district":dist or "Madurai",
                "language":lang_detect,
@@ -140,6 +155,55 @@ def match():
     return jsonify({"evaluations":ev,"recommended":best,
                     "note":"Smallest sufficient scheme recommended to minimize debt burden."})
 
+# ================= FINANCIAL PATHWAY (v1) =================
+@app.post("/api/pathway")
+def pathway():
+    p = request.json.get("profile", {})
+    scheme_id = request.json.get("scheme_id")
+    s = next(x for x in RULES["schemes"] if x["id"] == scheme_id)
+    amt = p.get("required_amount") or min(s["max_loan"], p.get("project_cost", s["max_loan"]))
+    contrib = max(0, int((p.get("project_cost") or amt) * 0.10))
+    rate = s["interest_demo"] / 100 / 12
+    years = 7 if s["id"] == "TERM_LOAN" else 5
+    n = years * 12
+    emi = amt * rate * (1 + rate) ** n / ((1 + rate) ** n - 1) if rate else amt / n
+    inc = p.get("family_income") or 380000
+    burden = emi * 12 / inc * 100
+    viable = burden <= 40
+    return jsonify({
+        "pathway": [
+            {"step": "YOUR NEED", "value": f"₹{amt:,} — {p.get('purpose','business')}"},
+            {"step": "PROJECT COST", "value": f"₹{p.get('project_cost') or amt:,}"},
+            {"step": "RELEVANT SCHEME", "value": s["name"]},
+            {"step": "FINANCIAL LIMIT", "value": f"Up to ₹{s['max_loan']:,} (scheme cap)"},
+            {"step": "BENEFICIARY CONTRIBUTION (est.)", "value": f"₹{contrib:,}"},
+            {"step": "INTEREST (demo rate)", "value": f"{s['interest_demo']}% p.a. — illustrative only"},
+            {"step": "REPAYMENT", "value": f"~₹{emi:,.0f}/month × {years} yrs (moratorium {RULES['repayment']['moratorium_months']} mo)"},
+            {"step": "ANNUAL REPAYMENT BURDEN", "value": f"{burden:.1f}% of family income"},
+            {"step": "VIABILITY CHECK", "value": "Within safe burden range (≤40%)" if viable else "HIGH BURDEN — consider smaller amount"},
+            {"step": "ROUTE", "value": "Authorized channel partner → PM-SURAJ (sandbox)"}
+        ],
+        "emi": round(emi), "burden_pct": round(burden, 1), "viable": viable,
+        "disclaimer": "Illustrative calculation at demo rate. Final terms determined by authorized channel partner."})
+
+# ================= DOCUMENT READINESS (weighted rubric, v1) =================
+DOC_SETS = {
+    "core":  [("caste_cert", "Caste certificate", 15), ("income_proof", "Income certificate", 15),
+              ("id_proof", "Identity / address proof", 10), ("bank", "Bank account details", 10)],
+    "project": [("project_plan", "Business / project document", 20)],
+    "financial": [("photo", "Passport photo", 5), ("quotation", "Asset quotation (if applicable)", 5)]
+}
+@app.post("/api/readiness")
+def readiness():
+    have = set(request.json.get("documents", []))
+    got = 0; breakdown = []
+    for grp, docs in DOC_SETS.items():
+        for did, name, w in docs:
+            ok = did in have; got += w if ok else 0
+            breakdown.append({"id": did, "name": name, "weight": w, "present": ok})
+    return jsonify({"score": got, "breakdown": breakdown,
+                    "rubric": "Core identity/caste/income = 50% | Project docs = 20% | Financial profile = 10% | (demo rubric v1)"})
+
 # ================= APPLY (handoff to PM-SURAJ flow) =================
 @app.post("/api/apply")
 def apply():
@@ -152,13 +216,22 @@ def apply():
                    VALUES (?,?,?,?,?,?,?,1,'IN_PROCESS')""",
                 (app_no,u["id"],d.get("fdc","NSFDC"),d["scheme_id"],d["amount"],d.get("project_cost"),d.get("purpose","business")))
     appid = con.execute("SELECT id FROM applications WHERE app_no=?", (app_no,)).fetchone()[0]
+    # attach documents declared in readiness rubric
+    for doc in (d.get("documents") or []):
+        con.execute("INSERT OR IGNORE INTO documents (user_id, app_id, doc_type, status) VALUES (?,?,?,?)",
+                    (u["id"], appid, doc, "ON_FILE"))
     con.execute("""INSERT INTO status_events (app_id,stage,stage_key,actor,note) VALUES (?,1,'SUBMITTED','SYSTEM',?)""",
                 (appid,"Application created on PM-SURAJ Seva layer — handoff to authorized PM-SURAJ flow (sandbox adapter)."))
+    # create journey card (v1) linked to this application
+    ref = "NWD-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    con.execute("INSERT INTO journeys (ref, app_id, payload) VALUES (?,?,?)",
+                (ref, appid, json.dumps({"app_no": app_no, "profile": d.get("profile"),
+                                          "eligibility": d.get("eligibility"), "readiness": d.get("readiness")})))
     con.commit()
-    return jsonify({"app_no":app_no,"app_id":appid,
+    return jsonify({"app_no": app_no, "app_id": appid, "journey_ref": ref,
                     "note":"SANDBOX adapter: production hands off via authorized PM-SURAJ API."})
 
-# ================= APPLICANT: my applications + timeline =================
+# ================= APPLICANT: applications + timeline =================
 @app.get("/api/my/applications")
 def my_apps():
     u = me()
@@ -171,18 +244,22 @@ def my_apps():
 @app.get("/api/application/<int:aid>")
 def app_detail(aid):
     con = db()
-    a = con.execute("""SELECT a.*, p.name AS partner_name, p.ptype AS partner_type, p.address AS partner_addr
-                       FROM applications a LEFT JOIN partners p ON p.id=a.partner_id WHERE a.id=?""",(aid,)).fetchone()
+    a = con.execute("""SELECT a.*, u.name AS applicant_name, u.district AS applicant_district,
+                       p.name AS partner_name, p.ptype AS partner_type, p.address AS partner_addr, p.contact AS partner_contact
+                       FROM applications a JOIN users u ON u.id=a.user_id
+                       LEFT JOIN partners p ON p.id=a.partner_id WHERE a.id=?""",(aid,)).fetchone()
     if not a: return jsonify({"error":"not found"}),404
     events = con.execute("SELECT * FROM status_events WHERE app_id=? ORDER BY id",(aid,)).fetchall()
     queries = con.execute("SELECT * FROM queries WHERE app_id=? ORDER BY id DESC",(aid,)).fetchall()
     docs = con.execute("SELECT * FROM documents WHERE app_id=?",(aid,)).fetchall()
     outcome = con.execute("SELECT * FROM outcomes WHERE app_id=?",(aid,)).fetchone()
+    jr = con.execute("SELECT ref FROM journeys WHERE app_id=?",(aid,)).fetchone()
     return jsonify({"application":{**dict(a),"stage_key":STAGES[a["stage"]]},
                     "timeline":[dict(e) for e in events],
                     "queries":[dict(q) for q in queries],
                     "documents":[dict(d) for d in docs],
                     "outcome":dict(outcome) if outcome else None,
+                    "journey_ref": jr["ref"] if jr else None,
                     "stages":[{"n":k,"key":v} for k,v in STAGES.items()]})
 
 @app.post("/api/query/<int:qid>/respond")
@@ -240,19 +317,20 @@ def officer_advance():
     con.commit()
     return jsonify({"ok":True,"stage":ns,"stage_key":STAGES[ns]})
 
-# ================= ADMIN ANALYTICS (SLA / bottleneck / outcomes) =================
+# ================= ADMIN ANALYTICS =================
 @app.get("/api/analytics")
 def analytics():
     u = me()
     if not u or u["role"]!="admin": return jsonify({"error":"admin login required"}),401
     con = db()
-    aging = con.execute("""SELECT stage_key, COUNT(*) n, AVG(days_taken) avg_days, MAX(days_taken) max_days
+    aging = con.execute("""SELECT stage, stage_key, COUNT(*) n, AVG(days_taken) avg_days, MAX(days_taken) max_days
                            FROM status_events GROUP BY stage_key ORDER BY stage""").fetchall()
     total = con.execute("SELECT COUNT(*) c FROM applications").fetchone()["c"]
     qopen = con.execute("SELECT COUNT(*) c FROM queries WHERE status='OPEN'").fetchone()["c"]
     disb  = con.execute("SELECT COUNT(*) c FROM applications WHERE stage>=10").fetchone()["c"]
     repay = con.execute("SELECT repayment_status, COUNT(*) c FROM outcomes GROUP BY repayment_status").fetchall()
-    bystage = con.execute("SELECT stage_key, COUNT(*) c FROM applications GROUP BY stage_key").fetchall()
+    bystage = con.execute("SELECT stage, COUNT(*) c FROM applications GROUP BY stage ORDER BY stage").fetchall()
+    bystage = [{**dict(r), "stage_key": STAGES[r["stage"]]} for r in bystage]
     return jsonify({"aging":[dict(r) for r in aging],"total":total,"open_queries":qopen,
                     "disbursed":disb,"repayment":[dict(r) for r in repay],
                     "pipeline":[dict(r) for r in bystage],
@@ -270,6 +348,143 @@ def partners():
     return jsonify({"partners":[dict(r) for r in rows],
                     "note":"Grounded: TAHDCO district units sit inside District Collectorates (NSFDC SCA). Verify live status before visit. Production: authorized PM-SURAJ partner API."})
 
+# ================= JOURNEY CARD =================
+@app.post("/api/journey")
+def create_journey():
+    u = me()
+    if not u: return jsonify({"error":"login required"}),401
+    payload = request.json
+    ref = "NWD-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    con = db()
+    con.execute("INSERT INTO journeys (ref, payload) VALUES (?,?)", (ref, json.dumps(payload)))
+    con.commit()
+    return jsonify({"ref": ref, "mode": "SANDBOX — production would hand off via authorized PM-SURAJ API"})
+
+@app.get("/api/journey/<ref>")
+def get_journey(ref):
+    r = db().execute("SELECT * FROM journeys WHERE ref=?", (ref,)).fetchone()
+    if not r: return jsonify({"error": "not found"}), 404
+    return jsonify({"ref": ref, "app_id": r["app_id"], "payload": json.loads(r["payload"])})
+
+# ================= DOWNLOADABLE GOVT FORM (v3) =================
+FORM_CSS = """
+@page{size:A4;margin:16mm}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#1a1a2e;font-size:12.5px;line-height:1.45;background:#e8ecf3;padding:20px}
+.sheet{background:#fff;max-width:820px;margin:0 auto;padding:34px 40px;box-shadow:0 4px 24px rgba(0,0,0,.15)}
+.tc{display:flex;height:5px;margin:-34px -40px 18px}.tc span{flex:1}.tc .s{background:#FF9933}.tc .w{background:#fff}.tc .g{background:#138808}
+.head{display:flex;align-items:center;gap:14px;border-bottom:3px double #0E2A47;padding-bottom:12px;margin-bottom:14px}
+.emblem{width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 50% 50%,#fff 58%,transparent 60%),conic-gradient(#F28C28,#fff,#138808,#fff,#F28C28);display:flex;align-items:center;justify-content:center;font-size:26px}
+.head h1{font-size:17px;color:#0E2A47}.head p{font-size:10.5px;color:#444}
+.head .right{margin-left:auto;text-align:right;font-size:10.5px;color:#333;line-height:1.6}
+.photo{width:95px;height:115px;border:1px solid #999;display:flex;align-items:center;justify-content:center;font-size:10px;color:#777;margin-left:10px;text-align:center}
+h2.title{text-align:center;font-size:14.5px;color:#0E2A47;text-decoration:underline;margin:12px 0 14px;text-transform:uppercase;letter-spacing:.5px}
+table{width:100%;border-collapse:collapse;margin-bottom:12px}
+td,th{border:1px solid #444;padding:5px 8px;font-size:12px;vertical-align:top}
+th{background:#eef2f7;text-align:left;width:32%;font-weight:600;color:#0E2A47}
+.sec{background:#0E2A47;color:#fff;font-size:11.5px;font-weight:700;padding:5px 10px;margin:14px 0 0;letter-spacing:.5px}
+.decl{border:1px solid #444;padding:10px 12px;margin-top:14px;font-size:11.5px}
+.sig{display:flex;justify-content:space-between;margin-top:46px}
+.sig div{width:30%;border-top:1px dotted #333;padding-top:5px;font-size:11px;text-align:center}
+.office{margin-top:22px;border:1px solid #444}
+.office th{width:25%}
+.sandbox{background:#FFF4DE;border:1px solid #F2D9A4;color:#7A5410;font-size:10px;padding:6px 10px;margin-bottom:12px;text-align:center}
+.bar{display:flex;gap:10px;justify-content:center;margin:18px 0}
+.btn{border:0;border-radius:6px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-pri{background:#0E2A47;color:#fff}.btn-acc{background:#F28C28;color:#fff}
+@media print{body{background:#fff;padding:0}.sheet{box-shadow:none;max-width:none;padding:0}.bar{display:none}.tc{margin:-0mm 0 5mm}}
+"""
+
+FORM_HTML = """<!DOCTYPE html><html><head><meta charset="utf-8"><title>{{title}}</title><style>{{css}}</style></head>
+<body>
+<div class="sheet">
+<div class="tc"><span class="s"></span><span class="w"></span><span class="g"></span></div>
+<div class="head">
+  <div class="emblem">☸</div>
+  <div><h1>PM-SURAJ SEVA · NO WRONG DOOR</h1>
+  <p>Pradhan Mantri Samajik Utthan evam Rozgar Adharit Jankalyan (PM-SURAJ)<br>
+  Ministry of Social Justice &amp; Empowerment · NSFDC · NBCFDC · NSKFDC</p></div>
+  <div class="right"><b>Application No:</b> {{a.app_no}}<br><b>Date:</b> {{a.created_at[:10]}}<br><b>FDC:</b> {{a.fdc}}</div>
+</div>
+<div class="sandbox">⚠ SANDBOX / SIMULATED DOCUMENT — SIH 2026 prototype (PS 26092). Not an official government form. Demo data only.</div>
+<h2 class="title">{{title}}</h2>
+{{body}}
+<div class="decl"><b>Declaration:</b> I hereby declare that the information furnished above is true and correct to the best of my knowledge and belief. I understand that any false statement may lead to rejection of my application and recovery of amounts disbursed, besides legal action under applicable law. I consent to verification of my particulars through appropriate government databases.</div>
+<div class="sig">
+  <div>Signature / Thumb impression of Applicant</div>
+  <div>Place &amp; Date</div>
+  <div>Receipt seal of Channel Partner / SCA</div>
+</div>
+</div>
+<div class="bar"><button class="btn btn-pri" onclick="window.print()">🖨️ Download / Print (Save as PDF)</button>
+<button class="btn btn-acc" onclick="window.close()">Close</button></div>
+</body></html>"""
+
+def _app_full(aid):
+    con = db()
+    a = con.execute("""SELECT a.*, u.name AS applicant_name, u.mobile, u.district AS applicant_district,
+                       p.name AS partner_name, p.ptype AS partner_type, p.address AS partner_addr
+                       FROM applications a JOIN users u ON u.id=a.user_id
+                       LEFT JOIN partners p ON p.id=a.partner_id WHERE a.id=?""", (aid,)).fetchone()
+    if not a: return None, con
+    docs = con.execute("SELECT * FROM documents WHERE app_id=?", (aid,)).fetchall()
+    events = con.execute("SELECT * FROM status_events WHERE app_id=? ORDER BY id", (aid,)).fetchall()
+    app_data = {**dict(a), "stage_key": STAGES[a["stage"]]}
+    return {"app": app_data, "docs": [dict(d) for d in docs], "events": [dict(e) for e in events]}, con
+
+def _v(v): return "Yes" if v else "No"
+
+@app.get("/form/<app_no>")
+def download_form(app_no):
+    con = db()
+    row = con.execute("SELECT id FROM applications WHERE app_no=?", (app_no,)).fetchone()
+    if not row: return "Application not found", 404
+    data, _ = _app_full(row["id"])
+    a = data["app"]
+    body = f"""
+<table><tr><th>1. Name of Applicant</th><td>{a['applicant_name']}</td><th>Mobile</th><td>{a['mobile']}</td></tr>
+<tr><th>2. District / State</th><td>{a['applicant_district']} / Tamil Nadu</td><th>Category</th><td>Scheduled Caste (as per caste certificate)</td></tr>
+<tr><th>3. Scheme Applied</th><td colspan="3">{a['scheme_id'].replace('_',' ')} ({a['fdc']})</td></tr>
+<tr><th>4. Loan Amount Requested</th><td>₹{a['amount']:,}</td><th>Project Cost (est.)</th><td>₹{(a['project_cost'] or a['amount']):,}</td></tr>
+<tr><th>5. Purpose / Sector</th><td colspan="3">{a['purpose']}</td></tr></table>
+<div class="sec">SECTION B — PRE-SCREENING RESULT (DETERMINISTIC RULE ENGINE · AUDITABLE)</div>
+<table><tr><th style="width:8%">#</th><th>Rule</th><th style="width:18%">Result</th></tr>
+<tr><td>3</td><td>Scheme limit / purpose compatibility (rule engine v{RULES['version']})</td><td>✔ RECOMMENDED</td></tr></table>
+<div class="sec">SECTION C — DOCUMENT CHECKLIST (AS DECLARED IN READINESS RUBRIC)</div>
+<table><tr><th style="width:8%">#</th><th>Document</th><th style="width:20%">Status</th></tr>
+{''.join(f"<tr><td>{i+1}</td><td>{d['doc_type'].replace('_',' ').title()}</td><td>{d['status']}</td></tr>" for i,d in enumerate(data['docs'])) or '<tr><td colspan="3">No documents on file — bring originals to partner office.</td></tr>'}
+</table>
+<div class="sec">SECTION D — CURRENT STATUS SNAPSHOT</div>
+<table><tr><th>Stage</th><td>{a['stage']} / 11 — {a['stage_key']}</td><th>Status</th><td>{a['status']}</td></tr>
+<tr><th>Current Handler</th><td colspan="3">{a['partner_name'] or 'TAHDCO District Unit (SCA)'} {('· ' + a['partner_addr']) if a['partner_addr'] else ''}</td></tr></table>
+<div class="sec" style="background:#555">FOR OFFICE USE ONLY</div>
+<table class="office">
+<tr><th>Scrutiny Officer</th><td></td><th>Date</th><td></td></tr>
+<tr><th>Field Verification</th><td></td><th>Credit Assessment</th><td></td></tr>
+<tr><th>Sanctioned Amount</th><td>₹</td><th>Disbursement Date</th><td></td></tr>
+<tr><th>Signature &amp; Seal</th><td colspan="3"></td></tr></table>"""
+    return render_template_string(FORM_HTML, title="Application Form — PM-SURAJ Channel (Sandbox Copy)",
+                                  css=FORM_CSS, a=a, body=body)
+
+@app.get("/ack/<app_no>")
+def ack_slip(app_no):
+    con = db()
+    row = con.execute("SELECT id FROM applications WHERE app_no=?", (app_no,)).fetchone()
+    if not row: return "Application not found", 404
+    data, _ = _app_full(row["id"])
+    a = data["app"]
+    jr = db().execute("SELECT ref FROM journeys WHERE app_id=?", (row["id"],)).fetchone()
+    ev_rows = "".join(f"<tr><td>{e['stage']}</td><td>{e['stage_key'].replace('_',' ')}</td><td>{e['actor']}</td><td>{e['created_at'][:16]}</td></tr>" for e in data['events'])
+    body = f"""
+<table><tr><th>Application No</th><td><b>{a['app_no']}</b></td><th>Applicant</th><td>{a['applicant_name']}</td></tr>
+<tr><th>Scheme</th><td>{a['scheme_id'].replace('_',' ')}</td><th>Amount</th><td>₹{a['amount']:,}</td></tr>
+<tr><th>Current Stage</th><td colspan="3">{a['stage']} / 11 — {a['stage_key']} ({a['status']})</td></tr>
+<tr><th>Journey Card Ref</th><td colspan="3"><b>{jr['ref'] if jr else '—'}</b> — show this at the authorized channel partner counter</td></tr></table>
+<div class="sec">STATUS EVENT LOG (AUDIT TRAIL)</div>
+<table><tr><th style="width:8%">Stg</th><th>Stage</th><th>Actor</th><th>Timestamp</th></tr>{ev_rows}</table>"""
+    return render_template_string(FORM_HTML, title="Acknowledgement & Status Slip", css=FORM_CSS, a=a, body=body)
+
+# ================= HOME =================
 @app.get("/")
 def home(): return send_from_directory(app.static_folder, "index.html")
 
