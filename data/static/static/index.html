@@ -1,0 +1,571 @@
+frontend = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PM-SURAJ Seva · NO WRONG DOOR — Beneficiary Journey Portal (SIH PS 26092)</title>
+<style>
+:root{
+  --navy:#0E2A47;--navy2:#16406B;--navy3:#1F5290;
+  --saffron:#F28C28;--saffron-d:#D9751A;--green:#1E8E5A;
+  --ink:#1C2B3A;--mut:#5B6B7C;--line:#D9E2EC;--bg:#F0F4F9;--card:#fff;
+  --bad:#C0392B;--warn:#B9770E;
+  --shadow:0 1px 3px rgba(14,42,71,.10),0 4px 14px rgba(14,42,71,.08);--radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
+h1,h2,h3,h4{line-height:1.25}
+.tricolor{display:flex;height:5px}.tricolor span{flex:1}.tricolor .s{background:#FF9933}.tricolor .w{background:#fff}.tricolor .g{background:#138808}
+.govtop{background:var(--navy);color:#fff;padding:10px 0}
+.govtop .wrap{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.govtop .brand{display:flex;align-items:center;gap:12px}
+.govtop .emblem{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#fff 58%,transparent 60%),conic-gradient(#F28C28,#fff,#138808,#fff,#F28C28);display:flex;align-items:center;justify-content:center;font-size:22px}
+.govtop h1{font-size:1.02rem;font-weight:700}
+.govtop small{display:block;font-size:.68rem;opacity:.85;font-weight:400}
+.govtop .meta{font-size:.72rem;text-align:right;opacity:.9;line-height:1.5}
+.govtop .meta b{color:#FFC37E}
+.sandboxbar{background:#FFF4DE;border-bottom:1px solid #F2D9A4;color:#7A5410;font-size:.75rem;padding:6px 0}
+.sandboxbar .wrap{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sandboxbar b{color:#8A5A00}
+.shell{display:flex;max-width:1240px;margin:0 auto;min-height:calc(100vh - 170px)}
+.sidebar{width:240px;background:var(--navy);color:#C9D8E8;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar .user{padding:18px;border-bottom:1px solid rgba(255,255,255,.12)}
+.sidebar .user .av{width:42px;height:42px;border-radius:50%;background:var(--saffron);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:8px}
+.sidebar .user b{color:#fff;font-size:.9rem;display:block}
+.sidebar .user span{font-size:.7rem;color:#9DB4CC}
+.sidebar nav{padding:10px 0;flex:1}
+.sidebar nav a{display:flex;align-items:center;gap:11px;padding:10.5px 18px;color:#C9D8E8;font-size:.87rem;border-left:3px solid transparent}
+.sidebar nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.sidebar nav a.active{background:rgba(242,140,40,.14);color:#FFC37E;border-left-color:var(--saffron)}
+.sidebar nav a .ico{width:20px;text-align:center}
+.sidebar .sidefoot{padding:13px 18px;font-size:.66rem;color:#7E97B3;border-top:1px solid rgba(255,255,255,.1)}
+.content{flex:1;padding:26px 28px;min-width:0}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.pagehead h2{font-size:1.3rem;color:var(--navy)}
+.pagehead p{font-size:.8rem;color:var(--mut);margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+.card h3{font-size:.98rem;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .tag{font-size:.64rem;font-weight:600;background:#E8EFF7;color:var(--navy3);border-radius:20px;padding:2px 10px;letter-spacing:.4px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:7px;padding:10px 20px;font-size:.87rem;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-pri{background:var(--navy);color:#fff}.btn-pri:hover{background:var(--navy2)}
+.btn-acc{background:var(--saffron);color:#fff}.btn-acc:hover{background:var(--saffron-d)}
+.btn-ghost{background:#E8EFF7;color:var(--navy)}.btn-ghost:hover{background:#D8E4F0}
+.btn-line{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 13px;font-size:.77rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 17px;display:flex;gap:13px;align-items:center}
+.stat .ic{width:44px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.stat .ic.n1{background:#E8EFF7}.stat .ic.n2{background:#FDEBD7}.stat .ic.n3{background:#E6F6EE}.stat .ic.n4{background:#FBEAE8}
+.stat b{font-size:1.2rem;color:var(--navy);display:block;line-height:1.2}
+.stat span{font-size:.7rem;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{background:#F4F7FB;color:var(--navy);font-weight:600;text-align:left;padding:9px 12px;border-bottom:2px solid var(--line);font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+td{padding:10px 12px;border-bottom:1px solid #EAEFF5;vertical-align:top}
+tr:hover td{background:#FAFCFE}
+.badge{display:inline-block;border-radius:20px;padding:3px 11px;font-size:.68rem;font-weight:700;letter-spacing:.3px}
+.b-ok{background:#E6F6EE;color:var(--green)}.b-bad{background:#FBEAE8;color:var(--bad)}
+.b-warn{background:#FDF3DE;color:var(--warn)}.b-info{background:#E8EFF7;color:var(--navy3)}.b-saff{background:#FDEBD7;color:var(--saffron-d)}
+/* ---- timeline ---- */
+.tl{list-style:none;position:relative;padding-left:8px}
+.tl li{position:relative;padding:0 0 22px 44px}
+.tl li::before{content:'';position:absolute;left:15px;top:34px;bottom:0;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl .dot{position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:#E8EFF7;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;color:var(--mut)}
+.tl li.done .dot{background:var(--green);border-color:var(--green);color:#fff}
+.tl li.cur .dot{background:var(--saffron);border-color:var(--saffron);color:#fff;box-shadow:0 0 0 4px rgba(242,140,40,.18)}
+.tl b{font-size:.88rem;color:var(--navy);display:block}
+.tl .who{font-size:.68rem;color:var(--mut);margin:2px 0}
+.tl .note{font-size:.82rem;color:var(--ink);background:#F6F9FD;border-radius:7px;padding:8px 12px;margin-top:5px}
+.sla{font-size:.66rem;color:var(--warn);font-weight:700}
+/* ---- queries ---- */
+.qcard{border:1px solid var(--line);border-left:5px solid var(--bad);border-radius:8px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.qcard.res{border-left-color:var(--green);background:#FBFEFC}
+.qcard h4{font-size:.9rem;color:var(--navy);margin-bottom:4px}
+.qcard .qmeta{font-size:.7rem;color:var(--mut);margin-bottom:8px}
+/* ---- voice ---- */
+.micfab{position:fixed;bottom:22px;right:22px;width:60px;height:60px;border-radius:50%;background:var(--saffron);color:#fff;font-size:1.6rem;border:0;cursor:pointer;box-shadow:0 6px 20px rgba(242,140,40,.45);z-index:90}
+.micfab.listening{animation:pulse 1.1s infinite;background:var(--bad)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}70%{box-shadow:0 0 0 18px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+.vpanel{background:linear-gradient(150deg,var(--navy),var(--navy2));color:#fff;border-radius:12px;padding:24px;margin-bottom:18px}
+.vpanel h3{color:#fff}
+.vlog{max-height:300px;overflow-y:auto;margin:14px 0}
+.vmsg{padding:10px 14px;border-radius:12px;margin-bottom:9px;max-width:82%;font-size:.88rem}
+.vmsg.user{background:var(--saffron);margin-left:auto;color:#fff}
+.vmsg.bot{background:rgba(255,255,255,.13);color:#EAF2FB}
+.vquick{display:flex;gap:8px;flex-wrap:wrap}
+.vquick button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 14px;font-size:.75rem;cursor:pointer}
+/* ---- landing ---- */
+.pub-nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60}
+.pub-nav .wrap{max-width:1240px;margin:0 auto;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pub-nav .links{display:flex;gap:18px;font-size:.85rem;align-items:center}
+.hero{max-width:1240px;margin:0 auto;padding:50px 20px 36px;display:grid;grid-template-columns:1.15fr .85fr;gap:38px;align-items:center}
+.hero h2{font-size:2rem;color:var(--navy);margin-bottom:13px}
+.hero h2 em{color:var(--saffron-d);font-style:normal}
+.hero p{color:var(--mut);font-size:.95rem;margin-bottom:20px;max-width:520px}
+.flow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow);font-size:.76rem;line-height:1.9}
+.flow b{color:var(--navy)}
+.flow .arr{color:var(--saffron-d);font-weight:700}
+.flow .split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:4px 0;text-align:center}
+.flow .split div{background:#F4F7FB;border-radius:6px;padding:5px}
+.how{max-width:1240px;margin:0 auto;padding:26px 20px 46px}
+.how h3{text-align:center;font-size:1.3rem;color:var(--navy);margin-bottom:24px}
+.howgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.howcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:19px;box-shadow:var(--shadow)}
+.howcard .n{width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:9px}
+.howcard b{color:var(--navy);display:block;margin-bottom:4px;font-size:.9rem}
+.howcard p{font-size:.76rem;color:var(--mut)}
+/* ---- login ---- */
+.loginwrap{min-height:calc(100vh - 180px);display:flex;align-items:center;justify-content:center;padding:38px 16px;background:linear-gradient(160deg,#E8EFF7,#F0F4F9 60%)}
+.logincard{background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(14,42,71,.14);width:100%;max-width:430px;overflow:hidden}
+.logincard .head{background:var(--navy);color:#fff;padding:24px 28px;text-align:center}
+.logincard .head h2{font-size:1.15rem;margin-bottom:3px}
+.logincard .head p{font-size:.72rem;opacity:.85}
+.logincard .body{padding:26px 28px}
+.logincard .demo{margin-top:13px;background:#F4F7FB;border:1px dashed var(--line);border-radius:8px;padding:10px 13px;font-size:.72rem;color:var(--mut)}
+.rolesel{display:flex;gap:8px;margin-bottom:16px}
+.rolesel button{flex:1;padding:9px;border:1px solid var(--line);background:#FBFCFE;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--mut)}
+.rolesel button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+/* ---- forms ---- */
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:.72rem;font-weight:600;color:var(--navy);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-size:.9rem;font-family:inherit;background:#FBFCFE}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid rgba(31,82,144,.25);border-color:var(--navy3)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cite{font-size:.72rem;color:var(--mut);background:#F4F7FB;border-left:3px solid var(--saffron);padding:8px 12px;border-radius:6px;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#E8EFF7;border-radius:20px;padding:4px 13px;font-size:.77rem}
+.langbar{position:fixed;bottom:20px;left:20px;z-index:80;display:flex;gap:6px;flex-wrap:wrap;max-width:300px}
+.langbar button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:5px 11px;font-size:.7rem;cursor:pointer;color:var(--mut)}
+.langbar button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.muted{color:var(--mut);font-size:.77rem}
+.pbar{height:9px;background:#E4EBF3;border-radius:6px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--green);border-radius:6px;transition:width .8s}
+footer.govfoot{background:var(--navy);color:#9DB4CC;font-size:.7rem;padding:17px 0;margin-top:30px}
+footer.govfoot .wrap{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+footer.govfoot b{color:#fff}
+@media(max-width:900px){.shell{flex-direction:column}.sidebar{width:100%;flex-direction:row;overflow-x:auto}.sidebar .user{display:none}.sidebar nav{display:flex;padding:0}.hero{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.content{padding:16px 13px}}
+@media print{.sidebar,.sandboxbar,.langbar,.micfab,.btn,footer,.govtop .meta{display:none!important}}
+</style>
+</head>
+<body>
+<div class="tricolor"><span class="s"></span><span class="w"></span><span class="g"></span></div>
+<div class="govtop"><div class="wrap">
+  <a class="brand" href="#/home" style="color:#fff">
+    <div class="emblem">☸</div>
+    <div><h1>PM-SURAJ SEVA · NO WRONG DOOR<small>Beneficiary Journey Intelligence Portal</small></h1>
+    <small>Ministry of Social Justice &amp; Empowerment · NSFDC · NBCFDC · NSKFDC · TAHDCO (TN-SCA)</small></div>
+  </a>
+  <div class="meta"><b>SIH 2026 · PS 26092</b><br><span id="clock"></span> · Sandbox v2.0</div>
+</div></div>
+<div class="sandboxbar"><div class="wrap">⚠️ <b>SANDBOX / SIMULATED ENVIRONMENT</b> — Grounded demo data (TAHDCO = TN SCA, Collectorate-based district units · nsfdc.nic.in scheme rules, income ceiling ₹5L w.e.f. 07-01-2026). Eligibility decided by deterministic rule engine, never by LLM. PM-SURAJ handoff = labeled mock adapter.</div></div>
+
+<div id="app"></div>
+
+<div class="langbar" id="langbar"></div>
+<button class="micfab" id="micfab" title="Voice Assistant">🎤</button>
+
+<footer class="govfoot"><div class="wrap">
+  <div><b>PM-SURAJ Seva — No Wrong Door</b><br>We complement PM-SURAJ: application → sanction → disbursement → outcome — made transparent.</div>
+  <div>Demo data only · Verify: nsfdc.nic.in · tahdco.tn.gov.in · Last verified (demo): Sep 2026</div>
+</div></footer>
+
+<script>
+/* ==================== I18N ==================== */
+const LANGS=[["en","English"],["ta","தமிழ்"],["hi","हिन्दी"],["te","తెలుగు"],["kn","ಕನ್ನಡ"],["ml","മലയാളം"],["bn","বাংলা"]];
+const I18N={
+en:{home:"Home",dashboard:"Dashboard",apply:"Apply / Eligibility",track:"Track Application",schemes:"Schemes",partners:"Channel Partners",voice:"Voice Assistant",queue:"Officer Queue",analytics:"Analytics",login:"Login",logout:"Logout",welcome:"Welcome",status:"Status",loginTitle:"Portal Login",applicant:"Applicant",officer:"Officer / CP",admin:"Admin Cell",trackSub:"Live stage-wise status — no more 'under process' black box.",voiceSub:"Speak in your own language. Rules decide, AI only understands.",applySub:"Voice-first guided readiness — rule engine, fully explainable."},
+ta:{home:"முகப்பு",dashboard:"டாஷ்போர்டு",apply:"விண்ணப்பம் / தகுதி",track:"விண்ணப்ப நிலை",schemes:"திட்டங்கள்",partners:"சேனல் பார்ட்னர்கள்",voice:"குரல் உதவியாளர்",queue:"அலுவலர் வரிசை",analytics:"அலசல்",login:"உள்நுழை",logout:"வெளியேறு",welcome:"வணக்கம்",status:"நிலை",loginTitle:"போர்ட்டல் உள்நுழைவு",applicant:"பயனாளி",officer:"அலுவலர் / CP",admin:"நிர்வாக அலகு",trackSub:"நேரடி கட்டம்-வாரி நிலை — 'under process' மர்மம் இல்லை.",voiceSub:"உங்கள் மொழியில் பேசுங்கள். முடிவு rules என்ஜின், AI வெறும் புரிந்துகொள்ளும்.",applySub:"குரல் முன்னுரிமை வழிகாட்டல் — rule engine, முழு விளக்கம்."},
+hi:{home:"होम",dashboard:"डैशबोर्ड",apply:"आवेदन / पात्रता",track:"आवेदन स्थिति",schemes:"योजनाएँ",partners:"चैनल पार्टनर",voice:"वॉइस सहायक",queue:"अधिकारी कतार",analytics:"विश्लेषण",login:"लॉगिन",logout:"लॉगआउट",welcome:"स्वागत",status:"स्थिति",loginTitle:"पोर्टल लॉगिन",applicant:"आवेदक",officer:"अधिकारी / CP",admin:"प्रशासन सेल",trackSub:"चरण-वार लाइव स्थिति — 'under process' की अनिश्चितता नहीं।",voiceSub:"अपनी भाषा में बोलें। निर्णय rule engine, AI केवल समझता है।",applySub:"वॉइस-फर्स्ट मार्गदर्शन — rule engine, पूरी तरह स्पष्ट।"},
+te:{home:"హోమ్",dashboard:"డాష్‌బోర్డ్",apply:"దరఖాస్తు / అర్హత",track:"దరఖాస్తు స్థితి",schemes:"పథకాలు",partners:"ఛానెల్ పార్టనర్లు",voice:"వాయిస్ సహాయకుడు",queue:"అధికారి వరుస",analytics:"విశ్లేషణ",login:"లాగిన్",logout:"లాగ్అవుట్",welcome:"స్వాగతం",status:"స్థితి",loginTitle:"పోర్టల్ లాగిన్",applicant:"దరఖాస్తుదారు",officer:"అధికారి / CP",admin:"అడ్మిన్ సెల్",trackSub:"దశల-వారీ ప్రత్యక్ష స్థితి — 'under process' అస్పష్టత లేదు.",voiceSub:"మీ భాషలో మాట్లాడండి. నిర్ణయం rule engine, AI కేవలం అర్థం చేసుకుంటుంది.",applySub:"వాయిస్-ఫస్ట్ మార్గదర్శకత్వం — rule engine, పూర్తి వివరణ."},
+kn:{home:"ಹೋಮ್",dashboard:"ಡ್ಯಾಷ್‌ಬೋರ್ಡ್",apply:"ಅರ್ಜಿ / ಅರ್ಹತೆ",track:"ಅರ್ಜಿ ಸ್ಥಿತಿ",schemes:"ಯೋಜನೆಗಳು",partners:"ಚಾನೆಲ್ ಪಾರ್ಟ್ನర್",voice:"ಧ್ವನಿ ಸಹಾಯಕ",queue:"ಅಧಿಕಾರಿ ಸರತಿ",analytics:"ವಿಶ್ಲೇಷಣೆ",login:"ಲಾಗಿನ್",logout:"ಲಾಗ್ಔಟ್",welcome:"ಸ್ವಾಗತ",status:"ಸ್ಥಿತಿ",loginTitle:"ಪೋರ್ಟಲ್ ಲಾಗಿನ್",applicant:"ಅರ್ಜಿದಾರ",officer:"ಅಧಿಕಾರಿ / CP",admin:"ಅಡ್ಮಿನ್ ಸೆಲ್",trackSub:"ಹಂತ-ವಾರು ಲೈವ್ ಸ್ಥಿತಿ — 'under process' ಅಸ್ಪಷ್ಟತೆ ಇಲ್ಲ.",voiceSub:"ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ಮಾತನಾಡಿ. ನಿರ್ಧಾರ rule engine, AI ಕೇವಲ ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತದೆ.",applySub:"ವಾಯ್ಸ್-ಫರ್ಸ್ಟ್ ಮಾರ್ಗದರ್ಶನ — rule engine, ಸಂಪೂರ್ಣ ವಿವರ."},
+ml:{home:"ഹോം",dashboard:"ഡാഷ്ബോർഡ്",apply:"അപേക്ഷ / യോഗ്യത",track:"അപേക്ഷാ നില",schemes:"പദ്ധതികൾ",partners:"ചാനൽ പാർട്ണേഴ്സ്",voice:"വോയ്സ് അസിസ്റ്റന്റ്",queue:"ഓഫീസർ ക്യൂ",analytics:"വിശകലനം",login:"ലോഗിൻ",logout:"ലോഗൗട്ട്",welcome:"സ്വാഗതം",status:"നില",loginTitle:"പോർട്ടൽ ലോഗിൻ",applicant:"അപേക്ഷകൻ",officer:"ഓഫീസർ / CP",admin:"അഡ്മിൻ സെൽ",trackSub:"ഘട്ട-വാരി തത്സമയ നില — 'under process' അവ്യക്തതയില്ല.",voiceSub:"നിങ്ങളുടെ ഭാഷയിൽ സംസാരിക്കുക. തീരുമാനം rule engine, AI മനസ്സിലാക്കും മാത്രം.",applySub:"വോയ്സ്-ഫസ്റ്റ് മാർഗനിർദ്ദേശം — rule engine, പൂർണ്ണ വിശദീകരണം."},
+bn:{home:"হোম",dashboard:"ড্যাশবোর্ড",apply:"আবেদন / যোগ্যতা",track:"আবেদনের অবস্থা",schemes:"প্রকল্পসমূহ",partners:"চ্যানেল পার্টনার",voice:"ভয়েস সহকারী",queue:"অফিসার কিউ",analytics:"বিশ্লেষণ",login:"লগইন",logout:"লগআউট",welcome:"স্বাগতম",status:"অবস্থা",loginTitle:"পোর্টাল লগইন",applicant:"আবেদনকারী",officer:"অফিসার / CP",admin:"অ্যাডমিন সেল",trackSub:"ধাপ-ভিত্তিক লাইভ অবস্থা — 'under process' অনিশ্চয়তা নেই।",voiceSub:"নিজের ভাষায় কথা বলুন। সিদ্ধান্ত rule engine, AI শুধু বোঝে।",applySub:"ভয়েস-ফার্স্ট নির্দেশনা — rule engine, সম্পূর্ণ ব্যাখ্যা।"}};
+const VOICE_RESP={
+en:{listening:"Listening… speak now",applied:"Your application PMS2026-TN-004217 is at stage 6 of 11 — Credit & viability assessment at Canara Bank, Town Hall Road, Madurai. One document query is open: please upload your full 6-month bank statement.",query:"Open query: Canara Bank needs your last 6-month bank statement for credit assessment. It is blocking your sanction. Upload it in the Track page.",scheme:"Based on ₹3 lakh need for an electrical repair workshop: NSFDC Term Loan fits best — up to ₹45 lakh at concessional rate via TAHDCO plus bank channel. Micro Finance is not suitable as it caps at ₹1.4 lakh.",doc:"Keep ready: caste certificate, income certificate, Aadhaar, bank statement, and a clear project report. Caste and income certificates carry the most weight.",help:"You can ask me: What is my status? What is the query? Which scheme fits me? What documents do I need?"},
+ta:{listening:"கேட்கிறேன்… இப்போது பேசுங்கள்",applied:"உங்கள் விண்ணப்பம் PMS2026-TN-004217 — 11-ல் 6வது கட்டம்: கானரா வங்கி (டவுன் ஹால் ரோடு, மதுரை) கடன் & நடைமுறை ஆய்வு. ஒரு ஆவண கேள்வி திறந்துள்ளது: 6 மாத வங்கி அறிக்கையை பதிவேற்றுங்கள்.",query:"திறந்த கேள்வி: கடன் ஆய்வுக்கு கடைசி 6 மாத வங்கி அறிக்கை தேவை. இது sanction-ஐ தடுக்கிறது. Track பக்கத்தில் பதிவேற்றவும்.",scheme:"₹3 லட்சம் மின் பழுதுநீக்கும் பட்டறைக்கு: NSFDC டெர்ம் லோன் சிறந்தது — TAHDCO + வங்கி வழியாக. மைக்ரோ ஃபைனான்ஸ் ஒத்துவராது (வரம்பு ₹1.4 லட்சம்).",doc:"தயாராக வைக்கவும்: சாதி சான்று, வருமான சான்று, ஆதார், வங்கி அறிக்கை, திட்ட அறிக்கை. சாதி & வருமான சான்று மிக முக்கியம்.",help:"கேட்கலாம்: என் நிலை என்ன? · கேள்வி என்ன? · எனக்கு எந்த திட்டம்? · என்ன ஆவணங்கள் வேண்டும்?"},
+hi:{listening:"सुन रहा हूँ… अब बोलिए",applied:"आपका आवेदन PMS2026-TN-004217 — 11 में चरण 6: केनरा बैंक (टाउन हॉल रोड, मदुरै) में क्रेडिट और व्यवहार्यता आकलन। एक दस्तावेज़ प्रश्न खुला है: कृपया 6 माह का बैंक स्टेटमेंट अपलोड करें।",query:"खुला प्रश्न: क्रेडिट आकलन के लिए केनरा बैंक को पिछले 6 माह का स्टेटमेंट चाहिए। यह sanction रोक रहा है। Track पेज पर अपलोड करें।",scheme:"₹3 लाख की इलेक्ट्रिकल रिपेयर वर्कशॉप के लिए: NSFDC टर्म लोन सबसे उपयुक्त — TAHDCO + बैंक चैनल से। माइक्रो फाइनेंस उपयुक्त नहीं (सीमा ₹1.4 लाख)।",doc:"तैयार रखें: जाति प्रमाण पत्र, आय प्रमाण पत्र, आधार, बैंक स्टेटमेंट, परियोजना रिपोर्ट। जाति और आय प्रमाण सबसे महत्वपूर्ण।",help:"पूछ सकते हैं: मेरी स्थिति? · प्रश्न क्या है? · मुझे कौन सी योजना? · कौन से दस्तावेज़?"}}
+function t(k){const L=I18N[S.lang]||I18N.en;return L[k]!==undefined?L[k]:(I18N.en[k]||k)}
+function vr(k){const L=VOICE_RESP[S.lang]||VOICE_RESP.en;return L[k]||VOICE_RESP.en[k]||''}
+const SR_MAP={en:"en-IN",ta:"ta-IN",hi:"hi-IN",te:"te-IN",kn:"kn-IN",ml:"ml-IN",bn:"bn-IN"};
+
+/* ==================== STATE ==================== */
+const S={user:null,lang:"en",profile:null,elig:null,match:null,appNo:null,
+  apps:[],curApp:null,vlog:[],role:"applicant"};
+try{const x=JSON.parse(localStorage.getItem("pmsv2")||"{}");Object.assign(S,x);if(S.user)S.user.id=S.user.id||x.uid}catch(e){}
+function save(){localStorage.setItem("pmsv2",JSON.stringify({user:S.user,lang:S.lang,role:S.role,uid:S.user?S.user.id:null}))}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function api(p,b){const o={method:b?"POST":"GET",headers:{"Content-Type":"application/json"}};if(S.user)o.headers["x-user-id"]=S.user.id;if(b)o.body=JSON.stringify(b);const r=await fetch(p,o);return r.json()}
+setInterval(()=>{const c=$("#clock");if(c)c.textContent=new Date().toLocaleString("en-IN",{timeZone:"Asia/Kolkata",hour12:true})},1000);
+
+function langButtons(){$("#langbar").innerHTML=LANGS.map(([c,n])=>`<button class="${S.lang===c?'on':''}" onclick="setLang('${c}')">${n}</button>`).join("")}
+function setLang(l){S.lang=l;save();route();if(S.vlog.length)vlogSay(S.vlog[S.vlog.length-1].txt,true)}
+
+/* ==================== ROUTER ==================== */
+const A_NAV=[["dashboard","🏠","dashboard"],["apply","📝","apply"],["track","🛰️","track"],["schemes","🎯","schemes"],["partners","🏦","partners"],["voice","🎤","voice"]];
+function route(){
+  const h=(location.hash||"#/home").replace("#/","").split("?")[0];
+  if(h==="home")return renderHome();
+  if(h==="login")return renderLogin();
+  if(!S.user){location.hash="#/login";return}
+  if(h==="apply")return renderApply();
+  if(h==="track")return renderTrack();
+  if(h==="schemes")return renderSchemes();
+  if(h==="partners")return renderPartners();
+  if(h==="voice")return renderVoice();
+  if(h==="officer")return renderQueue();
+  if(h==="admin")return renderAdmin();
+  return renderDashboard();
+}
+window.addEventListener("hashchange",route);
+function logout(){S.user=null;save();location.hash="#/home"}
+
+function navFor(role){return role==="officer"?[["officer","📋","queue"]]:role==="admin"?[["admin","📊","analytics"]]:A_NAV}
+function shell(active,inner,title,sub){
+  const nav=navFor(S.user.role);
+  document.title=title+" · PM-SURAJ Seva";
+  $("#app").innerHTML=`
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="user" style="cursor:pointer" onclick="location.hash='#/home'"><div class="av">${esc(S.user.name.split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase())}</div>
+        <b>${esc(S.user.name)}</b><span>${esc(S.user.org||"Beneficiary")} · ${esc(S.user.district)}<br>${S.user.role.toUpperCase()}</span></div>
+      <nav>
+        <a href="#/home"><span class="ico">🏡</span>${t("home")}</a>
+        ${nav.map(([r,i,k])=>`<a href="#/${r}" class="${active===r?"active":""}"><span class="ico">${i}</span>${t(k)}</a>`).join("")}
+        <a href="#/" onclick="logout()"><span class="ico">🚪</span>${t("logout")}</a>
+      </nav>
+      <div class="sidefoot">PM-SURAJ Seva v2.0-sandbox<br>MoSJE · NSFDC · TAHDCO</div>
+    </aside>
+    <main class="content">
+      <div class="pagehead">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <a class="btn btn-ghost btn-sm" href="#/home">🏡 ${t("home")}</a><span class="muted">/</span>
+          <div><h2>${title}</h2><p>${sub||""}</p></div>
+        </div>
+        <div class="chips"><span class="chip">🟢 Sandbox</span><span class="chip">🌐 ${LANGS.find(l=>l[0]===S.lang)[1]}</span></div>
+      </div>
+      ${inner}
+    </main>
+  </div>`;
+}
+
+/* ==================== LANDING ==================== */
+function renderHome(){
+  document.title="PM-SURAJ Seva · No Wrong Door";
+  const L=S.lang;
+  $("#app").innerHTML=`
+  <nav class="pub-nav"><div class="wrap">
+    <a class="brand" href="#/home" style="display:flex;align-items:center;gap:10px"><div class="emblem" style="width:36px;height:36px;font-size:17px">☸</div><b style="color:var(--navy)">PM-SURAJ Seva</b></a>
+    <div class="links"><span class="muted" style="font-size:.74rem">🎤 7 languages · தமிழ் हिन्दी తెలుగు ಕನ್ನಡ മലയാളം বাংলা</span><a class="btn btn-acc btn-sm" href="#/login">${t("login")} →</a></div>
+  </div></nav>
+  <section class="hero">
+    <div>
+      <span class="badge b-saff">SIH 2026 · PS 26092 · MoSJE / NSFDC ecosystem</span>
+      <h2 style="margin-top:14px">PM-SURAJ digitises access.<br>We make the <em>journey to benefit</em> transparent.</h2>
+      <p><b>₹1,389.61 crore</b> already flows to 1.39 lakh entrepreneurs. The lag is not the portal — it is what happens <b>after</b> submission: queries, verifications, credit assessment. We track it stage by stage, in the applicant's own language.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn btn-pri" href="#/login">🚀 ${t("applicant")} ${t("login")}</a><a class="btn btn-line" href="#/login">🏛️ Officer / Admin</a></div>
+    </div>
+    <div class="flow"><b>THE ECOSYSTEM WE SERVE (not replace)</b><br>
+      Citizen → <b>PM-SURAJ Portal / CSC</b> <span class="arr">→</span><br>
+      <span class="split"><div><b>NSFDC</b><br>SC · ≤₹5L income</div><div><b>NBCFDC</b><br>BC communities</div><div><b>NSKFDC</b><br>safai karamchari</div></span>
+      <span class="arr">↓ routed via</span><br>
+      <b>Channel Partner</b> — TAHDCO (SCA) / PSB / RRB / MFI<br>
+      <span class="arr">→</span> Scrutiny → Credit assessment → Sanction → <b>Disbursement</b> → Repayment / Monitoring<br>
+      <span class="cite" style="display:block;margin-top:8px">Our layer: eligibility guidance · data-mismatch detection · query resolution · stage visibility · SLA bottleneck analytics · applicant→beneficiary outcome tracking.</span>
+    </div>
+  </section>
+  <section class="how"><h3>Where we add value — the honest map</h3><div class="howgrid">
+    <div class="howcard"><div class="n">1</div><b>Before: explainable eligibility</b><p>Rule engine (never LLM) with per-rule citation. SC + ₹5L ceiling + scheme fit — auditable by any officer.</p></div>
+    <div class="howcard"><div class="n">2</div><b>During: query resolution engine</b><p>"Document invalid" → why · what to fix · who acts · blocking or not. RAVI KUMAR vs RAVIKUMAR caught before it loops.</p></div>
+    <div class="howcard"><div class="n">3</div><b>Visibility: stage-wise status</b><p>"Under Process" → "Credit assessment at Canara Bank, day 12 of stage — one action needed from you."</p></div>
+    <div class="howcard"><div class="n">4</div><b>After: outcome tracking</b><p>Application → sanction → disbursement → business started → repayment on time. Applicant ≠ beneficiary until money lands.</p></div>
+    <div class="howcard"><div class="n">5</div><b>Govt side: bottleneck analytics</b><p>Avg days per stage, aging queue, open queries by district — we don't duplicate PM-SURAJ dashboards, we make them actionable.</p></div>
+    <div class="howcard"><div class="n">6</div><b>Voice in your own language</b><p>7 languages, dialect-friendly. Beneficiary speaks; rules decide; AI never decides.</p></div>
+  </div></section>`;
+}
+
+/* ==================== LOGIN ==================== */
+function renderLogin(){
+  document.title=t("loginTitle")+" · PM-SURAJ Seva";
+  const demos=[["98XXXXXX01",t("applicant"),"Ravi Kumar — Madurai"],["98XXXXXX02",t("officer"),"S. Priya — TAHDCO Madurai"],["98XXXXXX99",t("admin"),"MoSJE Monitoring Cell"]];
+  $("#app").innerHTML=`
+  <div class="loginwrap"><div class="logincard">
+    <div class="head"><h2>🔐 ${t("loginTitle")}</h2><p>PM-SURAJ Seva · ${t("applicant")} / ${t("officer")} / ${t("admin")}</p></div>
+    <div class="body">
+      <div class="rolesel">${[["applicant",t("applicant")],["officer",t("officer")],["admin",t("admin")]].map(([r,l])=>`<button class="${S.role===r?"on":""}" onclick="S.role='${r}';save();renderLogin()">${l}</button>`).join("")}</div>
+      <div class="fld"><label>Mobile / ID</label><input id="uid" value="${S.role==="officer"?"98XXXXXX02":S.role==="admin"?"98XXXXXX99":"98XXXXXX01"}"></div>
+      <div class="fld"><label>OTP / Password</label><input id="pwd" type="password" value="demo1234"></div>
+      <button class="btn btn-pri" style="width:100%;justify-content:center" onclick="doLogin()">${t("login")} securely →</button>
+      <div class="demo">🔹 <b>Sandbox logins</b> (password: demo1234)<br>${demos.map(d=>`🔹 <b>${d[0]}</b> — ${d[1]} · ${d[2]}`).join("<br>")}<br>🔹 Production: Aadhaar OTP / DigiLocker / NIC SSO</div>
+      <a href="#/home" style="display:block;text-align:center;font-size:.8rem;margin-top:13px">← ${t("home")}</a>
+    </div>
+  </div></div>`;
+}
+async function doLogin(){
+  const r=await api("/api/login",{mobile:$("#uid").value,password:$("#pwd").value});
+  if(r.error)return alert(r.error);
+  S.user=r.user;save();
+  location.hash=S.user.role==="officer"?"#/officer":S.user.role==="admin"?"#/admin":"#/dashboard";
+}
+
+/* ==================== DASHBOARD ==================== */
+async function renderDashboard(){
+  const r=await api("/api/my/applications");S.apps=r.applications||[];
+  const a=S.apps[0];
+  shell("dashboard",`
+  <div class="card" style="background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;border:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+      <div><h3 style="color:#fff">${t("welcome")}, ${esc(S.user.name)} 🙏</h3>
+      <p style="font-size:.8rem;opacity:.85;max-width:560px">${esc(vr("applied"))}</p></div>
+      <a class="btn btn-acc" href="#/track">${t("track")} →</a>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="ic n1">📄</div><div><b>${a?a.app_no:"—"}</b><span>PM-SURAJ application no.</span></div></div>
+    <div class="stat"><div class="ic n2">🛰️</div><div><b>${a?`${a.stage} / 11`:"—"}</b><span>${a?a.stage_key.replace(/_/g," "):"Current stage"}</span></div></div>
+    <div class="stat"><div class="ic n3">❗</div><div><b>${a?a.status.replace(/_/g," "):"—"}</b><span>Application status</span></div></div>
+    <div class="stat"><div class="ic n4">🏦</div><div><b>${a&&a.partner_name?esc(a.partner_name):"TAHDCO"}</b><span>Current handler (channel partner)</span></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>⚡ ${S.lang==="en"?"Next best action":"Action required"}</h3>
+      <p class="muted" style="margin-bottom:10px">${esc(vr("query"))}</p>
+      <a class="btn btn-pri btn-sm" href="#/track">${t("track")} →</a></div>
+    <div class="card"><h3>🎤 ${t("voice")}</h3><p class="muted" style="margin-bottom:10px">${esc(vr("help"))}</p>
+      <a class="btn btn-acc btn-sm" href="#/voice">${t("voice")} →</a></div>
+  </div>`,t("dashboard"),"");
+  if(!S.apps.length)$("#app .content").insertAdjacentHTML("beforeend",`<div class="card"><h3>📝 ${t("apply")}</h3><p class="muted" style="margin-bottom:10px">No application yet — start with your voice. Scheme names not required.</p><a class="btn btn-acc" href="#/apply">${t("apply")} →</a></div>`);
+}
+
+/* ==================== APPLY (voice-first) ==================== */
+let AW=1;
+async function renderApply(){
+  shell("apply",`<div class="card" id="aw"></div>`,t("apply"),t("applySub"));AW=1;awStep();
+}
+function awStep(){
+  const w=$("#aw");
+  if(AW===1){w.innerHTML=`<h3>🎤 Step 1 · ${S.lang==="en"?"Speak your need":"Ungal thaevaiyai pesungal"} <span class="tag">AI UNDERSTANDS · RULES DECIDE</span></h3>
+    <div style="display:flex;gap:10px;align-items:flex-start;margin:14px 0"><button class="btn btn-acc" onclick="startVoice((txt)=>{document.getElementById('msg').value=txt})">🎤</button>
+    <textarea id="msg" rows="3" placeholder="${S.lang==="ta"?"உதா: எனக்கு ₹3 லட்சம் வேண்டும். மின் பழுதுநீக்கும் கடை. மதுரை.":"e.g. Enakku ₹3 lakh venum. Electrical repair workshop. Madurai."}"></textarea></div>
+    <div class="chips"><button class="btn btn-ghost btn-sm" onclick="$('#msg').value='Enakku ₹3 lakh venum. Electrical repair workshop start panna poren. Madurai.'">🗣️ Tamil sample</button>
+    <button class="btn btn-ghost btn-sm" onclick="$('#msg').value='Mujhe 3 lakh ka loan chahiye. Electrical repair workshop. Income 3.8 lakh.'">🗣️ Hindi sample</button></div>
+    <div style="margin-top:14px"><button class="btn btn-pri" id="awgo" onclick="awUnderstand()">Understand →</button></div>`;}
+  if(AW===2){w.innerHTML=`<h3>📋 Step 2 · ${S.lang==="en"?"Beneficiary profile":"Profile"}</h3>
+    <div class="chips" style="margin-bottom:12px">${Object.entries(S.profile).map(([k,v])=>`<span class="chip"><b>${k}</b>: ${v??"—"}</span>`).join("")}</div>
+    <div class="cite">${esc("AI layer: multilingual entity extraction (simulated). Decisions below are rule-engine only.")}</div>
+    <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-ghost" onclick="AW=1;awStep()">←</button><button class="btn btn-pri" onclick="awElig()">Run eligibility →</button></div>`;}
+  if(AW===3&&S.elig){w.innerHTML=`<h3>✅ Step 3 · ${S.lang==="en"?"Explainable eligibility":"Virivaana thagudhi"} <span class="tag">DETERMINISTIC</span></h3>
+    ${S.elig.rules.map(r=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)">${r.passed?'<span class="badge b-ok">✔ PASS</span>':'<span class="badge b-bad">✘ FAIL</span>'} <b style="font-size:.88rem">${esc(r.desc)}</b><div class="cite">RULE ${esc(r.rule)} · value ${esc(r.value)} · ${esc(r.operator)} · ${esc(S.elig.engine)}</div></div>`).join("")}
+    <div style="margin-top:14px"><button class="btn btn-pri" onclick="awMatch()">Match schemes →</button></div>`;}
+  if(AW===4&&S.match){w.innerHTML=`<h3>🎯 Step 4 · ${t("schemes")} <span class="tag">REJECTIONS EXPLAINED</span></h3>
+    <table><tr><th>Scheme</th><th>Verdict</th><th>Reason</th></tr>${S.match.evaluations.map(e=>`<tr><td><b>${esc(e.scheme)}</b><br><span class="muted" style="font-size:.7rem">${esc(e.fdc)} · ${esc(e.desc)}</span></td>
+    <td>${e.suitable?'<span class="badge b-ok">✔ FITS</span>':'<span class="badge b-bad">✘ NO</span>'}</td>
+    <td>${e.suitable?`Max ₹${e.max_loan.toLocaleString("en-IN")} · ${e.interest_demo}% demo`:`<span style="color:var(--bad);font-size:.76rem">${e.rejection_reasons.map(esc).join("<br>")}</span>`}</td></tr>`).join("")}</table>
+    ${S.match.recommended?`<div class="cite">⭐ <b>${esc(S.match.recommended.scheme)}</b> — ${esc(S.match.note)}</div>`:""}
+    <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-pri" onclick="awElig();AW=3;awStep()">←</button><button class="btn btn-acc" onclick="awApply()" ${S.match.recommended?"":"disabled"}>Submit to PM-SURAJ flow →</button></div>`;}
+  if(AW===5){w.innerHTML=`<h3>🎉 ${S.lang==="en"?"Application created":"Vinnappam sirruthu!"}</h3>
+    <p style="margin:10px 0">Application No: <b class="badge b-info" style="font-size:.95rem">${esc(S.appNo)}</b></p>
+    <p class="muted">Stage 1 of 11 — SUBMITTED. Track every stage from the Track page. The journey now moves: TAHDCO scrutiny → document verification → eligibility check → channel partner credit assessment → sanction → disbursement.</p>
+    <div style="margin-top:14px;display:flex;gap:10px"><a class="btn btn-pri" href="#/track">${t("track")} →</a><a class="btn btn-ghost" href="#/dashboard">${t("dashboard")}</a></div>`;}
+}
+async function awUnderstand(){const b=$("#awgo");b.disabled=true;b.textContent="…";
+  const r=await api("/api/voice",{message:$("#msg").value,lang:S.lang});S.profile=r.profile;AW=2;awStep()}
+async function awElig(){S.elig=await api("/api/eligibility",{profile:S.profile});S.match=await api("/api/match",{profile:S.profile});AW=3;awStep()}
+async function awMatch(){AW=4;awStep()}
+async function awApply(){const b=event.target;b.disabled=true;
+  const r=await api("/api/apply",{scheme_id:S.match.recommended.scheme_id,fdc:S.match.recommended.fdc,amount:S.profile.required_amount||S.match.recommended.max_loan,project_cost:S.profile.project_cost,purpose:S.profile.purpose});
+  S.appNo=r.app_no;AW=5;awStep()}
+
+/* ==================== TRACK (timeline + queries) ==================== */
+async function renderTrack(){
+  if(!S.apps.length){const r=await api("/api/my/applications");S.apps=r.applications||[]}
+  const a=S.apps[0];
+  if(!a)return shell("track",`<div class="card"><p class="muted">No application yet.</p><a class="btn btn-acc" href="#/apply">${t("apply")} →</a></div>`,t("track"),t("trackSub"));
+  const d=await api("/api/application/"+a.id);S.curApp=d;
+  const tl=d.timeline;
+  shell("track",`
+  <div class="stats">
+    <div class="stat"><div class="ic n1">📄</div><div><b>${a.app_no}</b><span>${esc(a.scheme_id.replace(/_/g," "))} · ₹${a.amount.toLocaleString("en-IN")}</span></div></div>
+    <div class="stat"><div class="ic n2">🛰️</div><div><b>${a.stage}/11</b><span>${esc(a.stage_key.replace(/_/g," "))}</span></div></div>
+    <div class="stat"><div class="ic n3">🏦</div><div><b style="font-size:.95rem">${esc(d.application.partner_name||"TAHDCO")}</b><span>Current handler</span></div></div>
+    <div class="stat"><div class="ic n4">${d.queries.filter(q=>q.status==="OPEN").length?"❗":"✅"}</div><div><b>${d.queries.filter(q=>q.status==="OPEN").length}</b><span>Open queries</span></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>🛰️ ${t("status")} timeline <span class="tag">NO MORE "UNDER PROCESS"</span></h3>
+      <ul class="tl">${tl.map((e,i)=>`<li class="${i<tl.length-1?"done":"cur"}"><span class="dot">${i<tl.length-1?"✓":e.stage}</span>
+        <b>${e.stage}/11 · ${esc(e.stage_key.replace(/_/g," "))}</b>
+        <div class="who">by ${esc(e.actor)} · ${esc(e.created_at)} ${e.days_taken?`· <span class="sla">stage took ${e.days_taken}d</span>`:""}</div>
+        <div class="note">${esc(e.note)}</div></li>`).join("")}
+        ${d.stages.filter(s=>s.n>tl[tl.length-1].stage).map(s=>`<li><span class="dot">${s.n}</span><b style="color:var(--mut);font-weight:600">${s.n}/11 · ${s.key.replace(/_/g," ")}</b><div class="who muted">upcoming</div></li>`).join("")}
+      </ul>
+    </div>
+    <div>
+      <div class="card"><h3>❗ ${S.lang==="en"?"Queries & actions":"Kelvigal & seyalgal"} <span class="tag">QUERY RESOLUTION ENGINE</span></h3>
+        ${d.queries.map(q=>`<div class="qcard ${q.status==="RESOLVED"?"res":""}">
+          <h4>${esc(q.title)}</h4>
+          <div class="qmeta">${esc(q.raised_by)} · ${esc(q.category)} · ${esc(q.created_at)} · 
+            ${q.blocking?'<span class="badge b-bad">BLOCKING</span>':'<span class="badge b-warn">NON-BLOCKING</span>'} 
+            ${q.status==="RESOLVED"?'<span class="badge b-ok">RESOLVED</span>':'<span class="badge b-warn">OPEN</span>'}</div>
+          <p style="font-size:.85rem">${esc(q.detail)}</p>
+          <p class="muted" style="margin-top:6px">Action by: <b>${esc(q.action_by)}</b></p>
+          ${q.status==="RESOLVED"?`<div class="cite" style="border-left-color:var(--green)">✔ ${esc(q.resolution||"Resolved")} · ${esc(q.resolved_at||"")}</div>`:
+          `<div style="margin-top:10px"><button class="btn btn-acc btn-sm" onclick="resolveQ(${q.id})">${S.lang==="en"?"I have fixed this — mark resolved":"Sari seidhu vitten — resolve pannunga"}</button></div>`}
+        </div>`).join("")}
+      </div>
+      <div class="card"><h3>📜 Documents</h3>
+        <table><tr><th>Document</th><th>Status</th><th>Note</th></tr>
+        ${d.documents.map(x=>`<tr><td><b>${esc(x.doc_type.replace(/_/g," "))}</b></td>
+          <td>${x.status==="VERIFIED"?'<span class="badge b-ok">VERIFIED</span>':x.status==="ON_FILE"?'<span class="badge b-info">ON FILE</span>':'<span class="badge b-warn">REQUIRED</span>'}</td>
+          <td class="muted" style="font-size:.75rem">${esc(x.note)}</td></tr>`).join("")}</table>
+      </div>
+      ${d.outcome?`<div class="card"><h3>📈 Outcome tracking</h3><p class="muted">Disbursed: ₹${(d.outcome.disbursed_amount||0).toLocaleString("en-IN")} · Repayment: <span class="badge ${d.outcome.repayment_status==="ON_TIME"?"b-ok":"b-bad"}">${esc(d.outcome.repayment_status)}</span></p></div>`:""}
+    </div>
+  </div>`,t("track"),t("trackSub"));
+}
+async function resolveQ(qid){
+  const res=prompt(S.lang==="ta"?"Veerasa seidha vishayathai ezhuthungal (e.g. 6-month statement uploaded)":"Describe what you fixed (e.g. uploaded 6-month bank statement):");
+  if(res===null)return;
+  await api("/api/query/"+qid+"/respond",{resolution:res});
+  renderTrack();
+}
+
+/* ==================== SCHEMES ==================== */
+async function renderSchemes(){
+  const r=await api("/api/schemes");
+  shell("schemes",`
+  <div class="card"><h3>🎯 NSFDC / NSKFDC scheme rules <span class="tag">v${esc(r.version)} · SOURCE-STAMPED</span></h3>
+  <p class="muted" style="margin-bottom:12px">${esc(r.note)}</p>
+  <table><tr><th>Scheme</th><th>FDC</th><th>Limits</th><th>Extra rule</th></tr>
+  ${r.schemes.map(s=>`<tr><td><b>${esc(s.name)}</b><br><span class="muted" style="font-size:.72rem">${esc(s.desc)}</span></td>
+    <td><span class="badge b-info">${esc(s.fdc)}</span></td>
+    <td>₹${s.min_project.toLocaleString("en-IN")}–₹${s.max_project.toLocaleString("en-IN")} · max loan ₹${s.max_loan.toLocaleString("en-IN")} · ${s.interest_demo}% demo</td>
+    <td class="muted" style="font-size:.76rem">${s.extra_rule?esc(s.extra_rule.desc):"—"}</td></tr>`).join("")}</table>
+  <div class="cite">Global rules: ${r.rules.map(x=>`<b>${esc(x.id)}</b> — ${esc(x.desc)}`).join(" · ")}</div></div>`,t("schemes"),"Deterministic rules — auditable, versioned, never LLM-decided.");
+}
+
+/* ==================== PARTNERS ==================== */
+async function renderPartners(){
+  const r=await api("/api/partners?district="+(S.user.district||"madurai").toLowerCase());
+  shell("partners",`
+  <div class="card"><h3>🏦 ${esc(S.user.district)} — authorized channel network <span class="tag">GROUNDED · TAHDCO = TN SCA</span></h3>
+  <table><tr><th>Partner</th><th>Type</th><th>FDC</th><th>Address</th><th>Contact</th><th>Verified</th></tr>
+  ${r.partners.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td><span class="badge ${p.ptype==="SCA"?"b-saff":"b-info"}">${esc(p.ptype)}</span></td>
+    <td>${esc(p.fdc)}</td><td class="muted" style="font-size:.78rem">${esc(p.address)}</td><td style="font-size:.78rem">${esc(p.contact)}</td>
+    <td class="muted" style="font-size:.72rem">${esc(p.last_verified)}</td></tr>`).join("")}</table>
+  <div class="cite">${esc(r.note)}</div></div>
+  <div class="card"><h3>🧭 How routing works here</h3><p class="muted">Applicant → PM-SURAJ → <b>TAHDCO District Manager office (Collectorate)</b> → scrutiny → forwarded to bank/NBFC channel partner for credit assessment → sanction → disbursement. NSKFDC cases (sanitation workers) follow the same SCA route. We don't replace this flow — we make every stage visible.</p></div>`,t("partners"),"");
+}
+
+/* ==================== VOICE ASSISTANT ==================== */
+function renderVoice(){
+  shell("voice",`
+  <div class="vpanel">
+    <h3>🎤 ${t("voice")} <span class="tag" style="background:rgba(255,255,255,.15);color:#FFD9A8">SPEAKS: ${LANGS.find(l=>l[0]===S.lang)[1]}</span></h3>
+    <p style="font-size:.82rem;opacity:.85;margin-top:6px">${t("voiceSub")}</p>
+    <div class="vlog" id="vlog"></div>
+    <div class="vquick">
+      <button onclick="voiceAsk('status')">${S.lang==="ta"?"என் நிலை என்ன?":"What's my status?"}</button>
+      <button onclick="voiceAsk('query')">${S.lang==="ta"?"கேள்வி என்ன?":"What's the query?"}</button>
+      <button onclick="voiceAsk('scheme')">${S.lang==="ta"?"எந்த திட்டம்?":"Which scheme fits me?"}</button>
+      <button onclick="voiceAsk('doc')">${S.lang==="ta"?"ஆவணங்கள்?":"What documents?"}</button>
+    </div>
+    <div style="margin-top:14px"><button class="btn btn-acc" onclick="startVoice(voiceHandle)">🎤 ${vr("listening")}</button></div>
+  </div>`,t("voice"),t("voiceSub"));
+  S.vlog.forEach(m=>vlogRender(m));
+  if(!S.vlog.length)vlogSay(vr("help"),true);
+}
+function vlogRender(m){const el=$("#vlog");if(!el)return;el.insertAdjacentHTML("beforeend",`<div class="vmsg ${m.who}">${esc(m.txt)}</div>`);el.scrollTop=el.scrollHeight}
+function vlogSay(txt,bot=true){S.vlog.push({who:bot?"bot":"user",txt});vlogRender({who:bot?"bot":"user",txt});if(bot&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(txt);u.lang=SR_MAP[S.lang]||"en-IN";u.rate=.95;speechSynthesis.speak(u)}}
+function voiceAsk(k){vlogSay("",false);vlogSay((S.lang==="ta"?"நீங்கள் கேட்டது: ":"You asked: ")+k.replace("status",S.lang==="ta"?"என் நிலை":"my status"),false);vlogSay(vr(k))}
+function voiceHandle(txt){
+  vlogSay(S.lang==="ta"?"நான் கேட்டது: ":"I said: "+txt,false);
+  const l=txt.toLowerCase();let key="help";
+  if(/status|நிலை|स्थिति|ಸ್ಥಿತಿ|స్థితి|നില|অবস্থা/.test(l))key="applied";
+  else if(/query|கேள்வி|प्रश्न|ప్రశ్న|ಪ್ರಶ್ನೆ|ചോദ്യം|প্রশ্ন|document|ஆவண|दस्तावेज़/.test(l))key=/doc|ஆவண|दस्तावेज़/.test(l)?"doc":"query";
+  else if(/scheme|திட்ட|योजना|పథక|ಯೋಜನೆ|പദ്ധതি|প্রকল্প|loan|கடன்|लोन/.test(l))key="scheme";
+  vlogSay(vr(key));
+}
+let recog=null;
+function startVoice(cb){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return alert("Voice needs Chrome/Edge. You can type instead.");
+  recog=new SR();recog.lang=SR_MAP[S.lang]||"en-IN";recog.interimResults=false;
+  const fab=$("#micfab");fab.classList.add("listening");
+  recog.onresult=e=>{const txt=e.results[0][0].transcript;cb(txt)};
+  recog.onend=()=>fab.classList.remove("listening");
+  recog.onerror=()=>{fab.classList.remove("listening")};
+  recog.start();
+}
+$("#micfab").onclick=()=>{if(!S.user){location.hash="#/login";return}location.hash="#/voice";setTimeout(()=>startVoice(voiceHandle),400)};
+
+/* ==================== OFFICER QUEUE ==================== */
+async function renderQueue(){
+  const r=await api("/api/officer/queue");
+  shell("officer",`
+  <div class="card"><h3>📋 ${esc(S.user.org)} — pending applications <span class="tag">${r.queue.length} IN QUEUE</span></h3>
+  ${r.queue.length?`<table><tr><th>App No</th><th>Applicant</th><th>Scheme</th><th>Amount</th><th>Stage</th><th>Status</th><th>Action</th></tr>
+  ${r.queue.map(a=>`<tr><td><b>${a.app_no}</b></td><td>${esc(a.applicant)}<br><span class="muted" style="font-size:.7rem">${esc(a.district)}</span></td>
+    <td>${esc(a.scheme_id.replace(/_/g," "))}</td><td>₹${a.amount.toLocaleString("en-IN")}</td>
+    <td>${a.stage}/11<br><span class="muted" style="font-size:.7rem">${esc(a.stage_key.replace(/_/g," "))}</span></td>
+    <td>${a.status==="QUERY_RAISED"?'<span class="badge b-bad">QUERY</span>':'<span class="badge b-info">IN PROCESS</span>'}</td>
+    <td><button class="btn btn-pri btn-sm" onclick="openApp(${a.id})">Open →</button></td></tr>`).join("")}</table>`:`<p class="muted">Queue empty.</p>`}</div>
+  <div id="offapp"></div>`,t("queue"),"Advance stages, raise structured queries — every action writes an auditable event.");
+}
+async function openApp(id){
+  const d=await api("/api/application/"+id);
+  $("#offapp").innerHTML=`<div class="card"><h3>🔍 ${d.application.app_no} — ${d.application.stage}/11 ${esc(d.application.stage_key.replace(/_/g," "))}</h3>
+  <div class="grid2">
+    <div><h3 style="font-size:.85rem">Timeline</h3><ul class="tl">${d.timeline.map((e,i)=>`<li class="${i<d.timeline.length-1?"done":"cur"}"><span class="dot">${i<d.timeline.length-1?"✓":e.stage}</span><b>${esc(e.stage_key.replace(/_/g," "))}</b><div class="who">${esc(e.actor)} · ${esc(e.created_at)}</div><div class="note">${esc(e.note)}</div></li>`).join("")}</ul></div>
+    <div><h3 style="font-size:.85rem">Raise query / advance</h3>
+      <div class="fld"><label>Category</label><select id="qc"><option>DATA_MISMATCH</option><option>DOCUMENT</option><option>ELIGIBILITY</option><option>FIELD</option><option>OTHER</option></select></div>
+      <div class="fld"><label>Title</label><input id="qt" placeholder="e.g. Name mismatch across documents"></div>
+      <div class="fld"><label>Detail — why · what to fix · who acts</label><textarea id="qd" rows="3" placeholder="Aadhaar shows 'RAVI KUMAR' but caste certificate shows 'RAVIKUMAR'. Applicant must upload corrected certificate."></textarea></div>
+      <button class="btn btn-bad btn-sm" style="background:var(--bad);color:#fff" onclick="raiseQ(${id})">Raise blocking query</button>
+      <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
+      <div class="fld"><label>Advance note (if no blockers)</label><input id="adv" placeholder="e.g. Field verification completed. Unit verified."></div>
+      <button class="btn btn-acc btn-sm" onclick="advanceApp(${id})">Advance to next stage →</button>
+    </div>
+  </div></div>`;
+  window.scrollTo(0,document.body.scrollHeight);
+}
+async function raiseQ(app_id){
+  await api("/api/officer/query",{app_id,category:$("#qc").value,title:$("#qt").value,detail:$("#qd").value,blocking:true});
+  alert("Query raised — applicant sees why, what to fix, who acts.");renderQueue();
+}
+async function advanceApp(app_id){
+  await api("/api/officer/advance",{app_id,note:$("#adv").value||"Stage advanced by "+S.user.org});
+  renderQueue();
+}
+
+/* ==================== ADMIN ANALYTICS ==================== */
+async function renderAdmin(){
+  const r=await api("/api/analytics");
+  shell("admin",`
+  <div class="stats">
+    <div class="stat"><div class="ic n1">📄</div><div><b>${r.total}</b><span>Total applications</span></div></div>
+    <div class="stat"><div class="ic n2">💸</div><div><b>${r.disbursed}</b><span>Reached disbursement (applicant→beneficiary)</span></div></div>
+    <div class="stat"><div class="ic n3">❗</div><div><b>${r.open_queries}</b><span>Open blocking queries</span></div></div>
+    <div class="stat"><div class="ic n4">🧨</div><div><b style="font-size:.9rem">${r.bottleneck?r.bottleneck.stage_key.replace(/_/g," "):"—"}</b><span>Bottleneck stage (avg ${r.bottleneck?(r.bottleneck.avg_days||0).toFixed(1):"—"}d)</span></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>⏱️ Stage-wise SLA aging <span class="tag">BOTTLENECK DETECTION</span></h3>
+      <table><tr><th>Stage</th><th>Cases</th><th>Avg days</th><th>Max days</th><th>Signal</th></tr>
+      ${r.aging.map(a=>`<tr><td><b>${a.stage_key.replace(/_/g," ")}</b></td><td>${a.n}</td><td>${(a.avg_days||0).toFixed(1)}</td><td>${a.max_days||0}</td>
+      <td>${r.bottleneck&&a.stage_key===r.bottleneck.stage_key?'<span class="badge b-bad">BOTTLENECK</span>':(a.avg_days>14?'<span class="badge b-warn">WATCH</span>':'<span class="badge b-ok">OK</span>')}</td></tr>`).join("")}</table>
+    </div>
+    <div>
+      <div class="card"><h3>🔁 Live pipeline</h3>
+        <table><tr><th>Stage</th><th>Applications</th></tr>${r.pipeline.map(p=>`<tr><td>${p.stage_key.replace(/_/g," ")}</td><td><b>${p.c}</b></td></tr>`).join("")}</table></div>
+      <div class="card"><h3>📈 Repayment health</h3>
+        ${r.repayment.map(x=>`<p style="margin-bottom:8px"><span class="badge ${x.repayment_status==="ON_TIME"?"b-ok":"b-bad"}">${x.repayment_status}</span> — ${x.c} case(s)</p>`).join("")||'<p class="muted">No disbursements yet.</p>'}</div>
+    </div>
+  </div>
+  <div class="cite" style="margin:0 18px 18px">We do NOT duplicate PM-SURAJ's official dashboards — this layer converts raw status into <b>actionable signals</b>: where applications age, which queries block, whether applicants became beneficiaries with viable businesses.</div>`,t("analytics"),"Where applications age, which queries block, applicant→beneficiary conversion.");
+}
+
+langButtons();
+route();
+</script>
+</body>
+</html>'''
+open('/mnt/agents/output/pmsuraj_seva/static/index.html','w').write(frontend)
+print('frontend written:', len(frontend.splitlines()), 'lines')
